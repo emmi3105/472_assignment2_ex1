@@ -14,7 +14,7 @@
 
 # 1. Setup: load packages
 library("tidyverse")
-
+library("randomNames")
 
 # 2. Installing the data
 
@@ -43,27 +43,44 @@ head(penguins)
 # The dataset is already tidy so we can continue with the task.
 
 
-# 3. Transforming the data 
+# 3. Modifying the function
 
-# Potentially, we are only interested in penguins from the island Biscoe. 
-# Therefore, we write a function that filters the dataset for penguins found on Biscoe island. 
-# Furthermore, we want to get rid of missing values.
 
-filter_biscoe <- function(dt) {
+# Modify the previously written function by adding a second variable
+# Create a function filter_biscoe that not only filters for Biscoe penguins 
+# but also assigns names from a list of randomly generated names to the observations 
+# by creating a "names" column. Furthermore, a "first_letter" column is created that 
+# indicates the initial for each observation. The function returns the modified dataset.
+
+filter_biscoe <- function(dt, ls) {
   filtered_dt <- dt %>%
     filter(island == "Biscoe") %>%
     na.omit
-  return(filtered_dt)}
+  
+  filtered_dt$name = ls
+  
+  require(stringr)
+  filtered_dt$first_letter <- str_extract(filtered_dt$name, "[aA-zZ]{1}")
+  
+  # Arrange the columns so that first letter and name are in the first two columns
+  final_dt <- filtered_dt %>%
+    select(first_letter, name, everything())
+  
+  return(final_dt)}
 
-# Execute the function with the penguin data
-# and save the filtered dataset as "filtered_peng"
-filtered_peng <- filter_biscoe(penguins)
 
-# Check the island variable
-summary(filtered_peng$island)
+# 4. Executing the function
 
-# As we can see, the filtered dataset only contains 163 observations, 
-# which all have been found on Biscoe island. 
+# The input factors of the modified function are (1) the penguins dataset and 
+# (2) a list containing 163 random names that can be assigned to the 163 observations
+# of the penguins dataset after filtering for Biscoe Island penguins only
 
-# The new dataset is printed out below
-print(filtered_peng)
+# Generate 163 random names; set a seed for reproducability
+set.seed(100)
+names_list = randomNames(163, which.names = "first")
+
+# Execute the function with the penguin data; save the filtered dataset as "filtered_peng"
+modified_peng <- filter_biscoe(penguins, names_list)
+
+# Investigate the filtered_peng dataset
+head(modified_peng)

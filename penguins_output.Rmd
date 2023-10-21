@@ -1,0 +1,161 @@
+---
+title: "Assignment 2 - Exercise 1"
+author: "201903536"
+date: "02 November 2023"
+output: html_document
+---
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(echo = FALSE) 
+
+
+## Setup:
+# Install/load packages
+library("tidyverse")
+library("randomNames")
+```
+
+This is an R-Markdown with the solutions for the first exercise of Assignment 2. It simulates a version control workflow using git and GitHub. 
+
+## Task
+
+Define a function with a single argument data, that takes a dataset and performs some input transformation on it. The function returns the transformed data. Include a new functionality by adding a second argument to the same function. Demonstrate the execution of the function depending on the value of this second argument and document it in an R Markdown.
+
+
+### 1. Installing the data
+
+I am using the palmerpenguins dataset. The description of the dataset can be found [here](https://cran.r-project.org/web/packages/palmerpenguins/readme/README.html). The code needed for installing the palmerpenguins dataset from CRAN can be found in the Code Appendix.
+
+```{r install and load palmerpenguins data}
+# Uncomment the following line of code to install the data
+#install.packages("palmerpenguins")
+library(palmerpenguins)
+
+# The palmerpenguins package contains two datasets.
+# For this exercise, we are interested in the penguins dataset.
+data(package = 'palmerpenguins')
+
+```
+
+The dataset penguins contains the size measurements for adult foraging penguins near Palmer Station, Antarctica. The dataset holds 344 penguins of three different species (source: [palmerpenguins documentation](https://cran.r-project.org/web/packages/palmerpenguins/readme/README.html)).
+
+```{r summary statistics of the variables}
+# Inspect the variables in penguins
+summary(penguins)
+
+```
+
+The penguins dataset holds 8 variables holding information on the penguins observed, such as the sex, bill length and species. Note that the dataset does have some missing values.
+
+We inspect the first few rows of the dataset.
+
+```{r inspect the data}
+# Show the first few rows of the dataset.
+head(penguins)
+
+```
+
+As seen in the first rows of penguins printed out above, the dataset is already tidy (meaning that each row corresponds to one observation, each variable has its own column and each value has its own cell) so we can continue with the task.
+
+### 2. Writing a function that takes two arguments
+
+For this task, I made up the following scenario:
+
+A group of 22 researchers has been tasked to do research on penguins in Antarctica. In the first observation round of their project, they have collected data on 344 penguins of three different species in Antarctica. They documented the data in the "penguins" dataset.
+
+Now, in a second stage of their research project, they are only interested in the 163 penguins on Biscoe Island, which is why they filtered the data set for Biscoe Island penguins only. The research project now requires the researchers to individually follow a random group of penguins for a few weeks and document their behaviour. The groups should specifically be different in size. As each researcher is supposed to be assigned to a random sample, they have decided to use the randomNames function in R to 1. assign random names to the penguins (which is helpful since the researchers are now able to report on individual penguins using their assigned name) and 2. to put the penguins in 22 different groups of random size depending on the first letter of their random name. These 22 groups are then assigned to one researcher each.
+
+Therefore, the researchers have asked me, a data scientist, to create a function that not only filters the "penguins" dataset for the penguins on Biscoe Island and gets rid of observations with missing values, but that also assigns random names to the penguins. Furthermore, a column indicating the first letter of the penguin names should be added to the dataset. This modified dataset should be returned when executing the function.
+
+Firstly, I modify the previously created function. I create a function filter_biscoe that not only filters for Biscoe penguins but also assigns names from a list of randomly generated names to the observations by creating a "names" column. Now, the function returns a dataset, which includes each penguin's random name and the initial.
+
+
+```{r modify the function}
+# Write a function filtering for Biscoe island penguins
+filter_biscoe <- function(dt, ls) {
+  filtered_dt <- dt %>%
+    filter(island == "Biscoe") %>%
+    na.omit
+  
+  filtered_dt$name = ls
+
+  require(stringr)
+  filtered_dt$first_letter <- str_extract(filtered_dt$name, "[aA-zZ]{1}")
+  
+  # Arrange the columns so that first letter and name are in the first two columns
+  final_dt <- filtered_dt %>%
+  select(first_letter, name, everything())
+  
+  return(final_dt)}
+
+```
+
+
+### 3. Execute the function using the penguins dataset
+
+Before I can test the function on the penguins dataset, I need to create the list of random names, which will be the second argument of the function. I create a list of 163 random names using the randomNames package and execute the function by inputting the penguins dataset and the list of random names. The first few rows of the modified dataset that the function returns can be seen below.
+
+
+```{r generate the random names list and execute the function}
+# Generate 163 random names
+# set a seed for reproducability
+set.seed(100)
+names_list = randomNames(163, which.names = "first")
+
+# Execute the function with the penguin data
+# and save the filtered dataset as "filtered_peng"
+modified_peng <- filter_biscoe(penguins, names_list)
+  
+# Investigate the filtered_peng dataset
+head(modified_peng)
+
+```
+
+Having done so, we can easily visualise the random observation samples for each researcher. For instance, we can write a function that returns a scatter plot, which plots the flipper length against the body mass of the penguins in the sample of one specific researcher.
+
+Below, this function has been executed for the researcher responsible for penguin group B.
+
+```{r function to visualise the penguins of one sample}
+
+# Write a function that plots the flipper length against the body mass 
+# The input for the function is the initial of the sample that shall be plotted
+
+visualise_sample <- function(initial){
+  plot_data <- modified_peng %>%
+    filter(first_letter == initial)
+
+  peng_plot <- ggplot(plot_data, aes(x = flipper_length_mm,
+                                y = body_mass_g,
+                                color = species)) +
+    geom_point() + 
+    geom_text(aes(label=name),
+              vjust = 1.5, size = 3) + 
+    ggtitle("Plot flipper length against body mass") +
+    ylab("Body mass (g)") + 
+    xlab("Flipper length (mm)")
+
+  print(peng_plot)
+
+}
+
+visualise_sample("B")
+```
+
+
+
+## Sources
+
+- Palmerpenguins dataset:
+    Horst AM, Hill AP, Gorman KB (2020). palmerpenguins: Palmer
+      Archipelago (Antarctica) penguin data. R package version 0.1.0.
+      https://allisonhorst.github.io/palmerpenguins/. doi:
+      10.5281/zenodo.3960218.
+
+
+
+## Appendix: All code in this assignment
+
+```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE} 
+
+
+```
